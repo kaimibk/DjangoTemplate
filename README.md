@@ -1,3 +1,3 @@
-# minio-example
+# Full Stack Django Template
 
-This is an example app to demonstrate MinIO functionality.
+WIP
