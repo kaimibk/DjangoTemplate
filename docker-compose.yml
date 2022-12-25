@@ -1,0 +1,89 @@
+version: "3"
+
+services:
+  app:
+    build:
+      context: .
+    env_file:
+      - dev.env
+    volumes:
+      - ./app:/app
+    ports:
+      - 8000:8000
+    depends_on:
+      - minio
+      - db
+    command: >-
+      python manage.py runserver 0.0.0.0:8000
+  
+  db:
+    image: postgres
+    env_file:
+      - dev.env
+    volumes:
+      - ./data/postgres:/var/lib/postgresql/data
+    ports:
+      - ${POSTGRES_PORT}:5432
+  
+  minio:
+    image: minio/minio
+    ports:
+      - 9000:9000
+      - 9001:9001
+    env_file:
+      - dev.env
+    volumes:
+      - ./data/minio:/data
+    command: server /data --console-address ":9001"
+
+  createbuckets:
+    image: minio/mc
+    depends_on:
+      - minio
+    env_file:
+      - dev.env
+    entrypoint: >
+      /bin/sh -c "
+      apk add nc &&
+      while ! nc -z minio 9000; do echo 'Wait minio to startup...' && sleep 0.1; done; sleep 5 &&
+      /usr/bin/mc config host add myminio http://minio:9000 ${AWS_ACCESS_KEY_ID} ${AWS_SECRET_ACCESS_KEY};
+      /usr/bin/mc mb myminio/${DEFAULT_BUCKET_NAME};
+      /usr/bin/mc policy download myminio/${DEFAULT_BUCKET_NAME};
+      exit 0;
+      "
+    # profiles: [ init ]
+
+  prometheus:
+    image: prom/prometheus
+    ports:
+      - 9090:9090
+    volumes:
+      - ./prometheus/config.yml:/etc/prometheus/prometheus.yml
+
+  grafana:
+    image: grafana/grafana
+    ports:
+      - 3000:3000
+    volumes:
+      - ./grafana/provisioning/datasources:/etc/provisioning/datasources
+      - ./data/grafana:/var/lib/grafana
+
+  redis:
+    image: redis
+    command: redis-server
+    ports:
+      - "6379:6379"
+
+  # celery:
+  #   restart: always
+  #   build:
+  #     context: .
+  #   command: celery -A app worker -l info
+  #   volumes:
+  #     - ./app:/app
+  #   env_file:
+  #     - dev.env
+  #   depends_on:
+  #     - db
+  #     - redis
+  #     - app
