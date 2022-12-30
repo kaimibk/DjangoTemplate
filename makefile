@@ -1,27 +1,36 @@
-ifneq (,$(wildcard ./.env))
-include .env
+ifneq (,$(wildcard ./dev.env))
+include dev.env
 export
-ENV_FILE_PARAM = --env-file .env
+ENV_FILE_PARAM = --env-file dev.env
 
 endif
 
 build:
 	docker compose build
 
-makemigrations:
+up:
+	docker compose up -d
+
+up-monitor:
+	docker compose --profile monitoring up -d
+
+down:
+	docker compose down
+
+down-monitor:
+	docker compose --profile monitoring down
+
+migrations:
 	docker compose exec app python manage.py makemigrations
 
 migrate:
 	docker compose exec app python manage.py migrate
 
 superuser:
-	docker compose exec app python manage.py createsuperuser 
+	docker compose exec app python manage.py createsuperuser
 
-up:
-	docker compose up -d
-
-down:
-	docker compose down
+collectstatic:
+	docker compose exec app python manage.py collectstatic
 
 create-buckets:
 	docker compose up createbuckets -d
