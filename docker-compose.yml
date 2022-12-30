@@ -1,6 +1,7 @@
 version: "3"
 
 services:
+  # TODO: react front end
   app:
     build:
       context: .
@@ -11,8 +12,10 @@ services:
     ports:
       - 8000:8000
     depends_on:
-      - minio
-      - db
+      db:
+        condition: service_healthy
+      minio:
+        condition: service_healthy
     command: >-
       python manage.py runserver 0.0.0.0:8000
   
@@ -24,9 +27,15 @@ services:
       - ./data/postgres:/var/lib/postgresql/data
     ports:
       - ${POSTGRES_PORT}:5432
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U postgres"]
+      interval: 5s
+      timeout: 5s
+      retries: 5
   
   minio:
     image: minio/minio
+    hostname: "minio"
     ports:
       - 9000:9000
       - 9001:9001
@@ -35,6 +44,11 @@ services:
     volumes:
       - ./data/minio:/data
     command: server /data --console-address ":9001"
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:9000/minio/health/live"]
+      interval: 30s
+      timeout: 20s
+      retries: 3
 
   createbuckets:
     image: minio/mc
@@ -53,23 +67,35 @@ services:
       "
     # profiles: [ init ]
 
+  # TODO: Loki
+
   prometheus:
     image: prom/prometheus
+    env_file:
+      - dev.env
     ports:
       - 9090:9090
     volumes:
       - ./prometheus/config.yml:/etc/prometheus/prometheus.yml
+    profiles:
+      - monitoring
 
   grafana:
     image: grafana/grafana
+    env_file:
+      - dev.env
     ports:
       - 3000:3000
     volumes:
       - ./grafana/provisioning/datasources:/etc/provisioning/datasources
       - ./data/grafana:/var/lib/grafana
+    profiles:
+      - monitoring
 
   redis:
     image: redis
+    env_file:
+      - dev.env
     command: redis-server
     ports:
       - "6379:6379"
