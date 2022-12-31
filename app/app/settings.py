@@ -162,6 +162,7 @@ STATIC_URL = "/static/"
 # S3 configuration
 
 DEFAULT_FILE_STORAGE = "storages.backends.s3boto3.S3Boto3Storage"
+# STATICFILES_STORAGE = 'storages.backends.s3boto3.S3Boto3Storage'
 
 AWS_ACCESS_KEY_ID = os.environ.get("AWS_ACCESS_KEY_ID", "access-key")
 AWS_SECRET_ACCESS_KEY = os.environ.get("AWS_SECRET_ACCESS_KEY", "secret-key")
@@ -169,3 +170,16 @@ AWS_STORAGE_BUCKET_NAME = os.environ.get("AWS_STORAGE_BUCKET_NAME", "my-local-bu
 
 if DEBUG:
     AWS_S3_ENDPOINT_URL = "http://minio:9000"  # TODO: add to .env
+    # AWS_AUTO_CREATE_BUCKET = True
+    # AWS_S3_FILE_OVERWRITE = True
+    # AWS_S3_USE_SSL = False
+    # STATIC_URL = f"{AWS_S3_ENDPOINT_URL}/minio/{AWS_STORAGE_BUCKET_NAME}/"
+
+    # AWS_S3_URL_PROTOCOL = "http:"
+    # AWS_S3_CUSTOM_DOMAIN = "localhost:9000"
+    # AWS_QUERYSTRING_AUTH = True
+    # AWS_QUERYSTRING_EXPIRE  = True
+    # AWS_S3_PROXIES = {
+    #     # "http://localhost": "minio:9000"
+    #     "http://minio:9000": "http://localhost:9000"
+    # }

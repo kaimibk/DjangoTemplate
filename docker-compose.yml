@@ -1,7 +1,7 @@
-version: "3"
+version: "3.5"
 
 services:
-  # TODO: react front end
+
   app:
     build:
       context: .
@@ -67,8 +67,30 @@ services:
       "
     # profiles: [ init ]
 
-  # TODO: Loki
-
+  promtail:
+    image: grafana/promtail:latest
+    env_file:
+      - dev.env
+    volumes:
+      - ./promtail/promtail-config.yml:/etc/promtail/promtail-config.yml
+      - /var/run/docker.sock:/var/run/docker.sock
+      - /var/lib/docker/containers:/var/lib/docker/containers
+    command: -config.file=/etc/promtail/promtail-config.yml -config.expand-env=true
+    profiles:
+      - monitoring
+    
+  loki:
+    image: grafana/loki:latest
+    env_file:
+      - dev.env
+    volumes:
+      - ./data/loki:/loki
+    ports:
+      - 3100:3100
+    profiles:
+      - monitoring
+  
+  # TODO: add postgresql exporter, see https://nelsoncode.medium.com/how-to-monitor-posgresql-with-prometheus-and-grafana-docker-36d216532ea2
   prometheus:
     image: prom/prometheus
     env_file:
@@ -76,7 +98,7 @@ services:
     ports:
       - 9090:9090
     volumes:
-      - ./prometheus/config.yml:/etc/prometheus/prometheus.yml
+      - ./prometheus/prometheus.yml:/etc/prometheus/prometheus.yml
     profiles:
       - monitoring
 
@@ -84,11 +106,16 @@ services:
     image: grafana/grafana
     env_file:
       - dev.env
+    environment:
+      - GF_AUTH_DISABLE_LOGIN_FORM=true
+      - GF_AUTH_ANONYMOUS_ENABLED=true
+      - GF_AUTH_ANONYMOUS_ORG_ROLE=Admin
     ports:
       - 3000:3000
     volumes:
-      - ./grafana/provisioning/datasources:/etc/provisioning/datasources
+      - ./grafana/provisioning/datasources/:/etc/grafana/provisioning/datasources/
       - ./data/grafana:/var/lib/grafana
+    user: "1000"
     profiles:
       - monitoring
 
@@ -99,7 +126,8 @@ services:
     command: redis-server
     ports:
       - "6379:6379"
-
+  
+  # TODO: add celery and flower
   # celery:
   #   restart: always
   #   build:
