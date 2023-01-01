@@ -62,7 +62,9 @@ services:
       while ! nc -z minio 9000; do echo 'Wait minio to startup...' && sleep 0.1; done; sleep 5 &&
       /usr/bin/mc config host add myminio http://minio:9000 ${AWS_ACCESS_KEY_ID} ${AWS_SECRET_ACCESS_KEY};
       /usr/bin/mc mb myminio/${DEFAULT_BUCKET_NAME};
-      /usr/bin/mc policy download myminio/${DEFAULT_BUCKET_NAME};
+      /usr/bin/mc mb myminio/loki;
+      /usr/bin/mc policy set public myminio/${DEFAULT_BUCKET_NAME};
+      /usr/bin/mc policy set public myminio/loki;
       exit 0;
       "
     # profiles: [ init ]
@@ -84,7 +86,12 @@ services:
     env_file:
       - dev.env
     volumes:
-      - ./data/loki:/loki
+      # - ./data/loki:/loki
+      - ./loki/loki.yml:/etc/loki/loki.yml
+    command: -config.file=/etc/loki/loki.yml -config.expand-env=true
+    depends_on:
+      minio:
+        condition: service_healthy
     ports:
       - 3100:3100
     profiles:
